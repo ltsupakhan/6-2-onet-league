@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>6/2 Onet League</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #0f1117;
+      color: #ffffff;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 24px 16px 48px;
+    }
+
+    .wrap { max-width: 720px; margin: 0 auto; }
+
+    h1 { color: #00d4aa; font-size: 26px; margin-bottom: 4px; }
+    #status { color: #666; font-size: 13px; margin-bottom: 20px; }
+
+    /* ---- ตารางลีก ---- */
+    table { width: 100%; border-collapse: collapse; }
+
+    th {
+      background-color: #1e2130;
+      color: #a0aec0;
+      padding: 10px 12px;
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    th.num, td.num { text-align: right; }
+
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #2d3748;
+    }
+    tr:hover td { background-color: #1a1f2e; }
+
+    .rank { font-weight: bold; width: 48px; color: #a0aec0; }
+    .name { font-weight: 600; }
+    /* ---- กติกา ---- */
+    .rules {
+      background: #1e2130; border: 1px solid #2d3748;
+      border-radius: 12px; margin: 0 0 24px;
+    }
+    .rules summary {
+      cursor: pointer; padding: 12px 16px; font-weight: 600;
+      list-style: none; display: flex; justify-content: space-between; align-items: center;
+    }
+    .rules summary::-webkit-details-marker { display: none; }
+    .rules summary::after { content: "▾"; color: #a0aec0; }
+    .rules[open] summary::after { content: "▴"; }
+    .rules ul { list-style: none; padding: 0 16px 12px; }
+    .rules li {
+      display: flex; justify-content: space-between; gap: 12px;
+      padding: 8px 0; border-top: 1px solid #2d3748;
+    }
+    .rules .pts { color: #00d4aa; font-weight: 700; white-space: nowrap; }
+
+    /* ---- ดาวรุ่ง ---- */
+    .highlights { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 24px; }
+    .highlights:empty { display: none; }
+    .hl {
+      flex: 1; min-width: 200px; background: #1e2130;
+      border: 1px solid #2d3748; border-radius: 12px; padding: 12px 16px;
+    }
+    .hl-title { color: #a0aec0; font-size: 12px; margin-bottom: 6px; }
+    .hl-name { font-weight: 700; font-size: 16px; word-break: break-word; }
+    .hl-val { color: #48bb78; font-weight: 700; font-size: 14px; margin-top: 2px; }
+
+    /* ---- โพเดียม ---- */
+    .podium {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 12px; margin: 8px 0 28px;
+    }
+    .podium:empty { display: none; }
+    .pod { flex: 1; max-width: 200px; text-align: center; min-width: 0; }
+    .pod .avatar { width: 56px; height: 56px; margin: 0 auto 6px; }
+    .pod .avatar.emoji { font-size: 30px; }
+    .pod-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; word-break: break-word; }
+    .pod-pts { color: #00d4aa; font-weight: bold; margin-bottom: 8px; }
+    .pod .block {
+      border-radius: 10px 10px 0 0; padding-top: 8px;
+      font-size: 26px; text-align: center;
+    }
+    .pod.p1 .block { height: 110px; background: linear-gradient(#f6c453, #b7892b); }
+    .pod.p2 .block { height: 80px;  background: linear-gradient(#cbd5e0, #8895a7); }
+    .pod.p3 .block { height: 60px;  background: linear-gradient(#d69e6b, #96653a); }
+
+    .who span { white-space: nowrap; }
+    @media (max-width: 480px) {
+      td, th { padding: 10px 6px; }
+      .move { width: 44px; }
+      .rank { width: 32px; }
+      .avatar { width: 30px; height: 30px; }
+      .points { font-size: 16px; }
+    }
+
+    .who { display: flex; align-items: center; gap: 10px; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      object-fit: cover; background: #1e2130; flex-shrink: 0;
+    }
+    .avatar.emoji {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .level { color: #a0aec0; font-size: 13px; }
+    .points { font-weight: bold; font-size: 18px; color: #00d4aa; }
+
+    /* ---- ลูกศรขึ้น/ลง ---- */
+    .move { width: 64px; font-size: 13px; white-space: nowrap; }
+    .up   { color: #48bb78; }
+    .down { color: #fc8181; }
+    .same { color: #4a5568; }
+
+    .gain { color: #48bb78; font-size: 12px; margin-left: 4px; }
+
+    /* ---- ข้อความสถานะ ---- */
+    .message {
+      text-align: center;
+      padding: 40px 16px;
+      color: #a0aec0;
+    }
+    .message.error { color: #fc8181; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🏆 6/2 Onet League</h1>
+    <p id="status">กำลังโหลดคะแนน...</p>
+
+    <div id="podium" class="podium"></div>
+    <div id="highlights" class="highlights"></div>
+
+    <details id="rules" class="rules" hidden>
+      <summary>📋 ได้คะแนนยังไงบ้าง?</summary>
+      <ul id="rules-list"></ul>
+    </details>
+
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th></th>
+          <th>ชื่อ</th>
+          <th>ระดับ</th>
+          <th class="num">คะแนน</th>
+        </tr>
+      </thead>
+      <tbody id="league-body"></tbody>
+    </table>
+    <div id="message"></div>
+  </div>
+
+  <script>
+    // ============================================
+    // ลิงก์ CSV จาก Google Sheets (publish to web)
+    // ============================================
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSqLqNWj6s-bf614Yjw91k7RLlHjuanLNN5dsYPlpfk6DRFHNW2tWXCqm8v4D4bnVp5IElZPDRNGLfy/pub?gid=678208332&single=true&output=csv";
+
+    // ============================================
+    // กติกาการได้คะแนน  ← แก้ตรงนี้ได้เลย
+    // (ตัวอย่างเท่านั้น ปรับให้ตรงกับของจริงก่อนแจกลิงก์)
+    // ถ้าเว้นว่าง [] กล่องกติกาจะไม่แสดง
+    // ============================================
+    const RULES = [
+      { text: "ตอบคำถามในคลาสได้ถูกต้อง",      points: "+1" },
+      { text: "ส่งการบ้านครบตรงเวลา",           points: "+2" },
+      { text: "ทำแบบฝึกหัด ONET เสร็จ",         points: "+3" },
+      { text: "ช่วยอธิบายให้เพื่อนเข้าใจ",      points: "+2" },
+      { text: "มาเรียนครบทุกคาบในสัปดาห์",      points: "+3" },
+    ];
+
+    // ============================================
+    // แปลงข้อความ CSV เป็น array ของแถว
+    // (รองรับช่องที่มีเครื่องหมายคำพูดและจุลภาคข้างใน)
+    // ============================================
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], cell = "", inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+
+        if (inQuotes) {
+          if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; }
+          else if (ch === '"') { inQuotes = false; }
+          else { cell += ch; }
+        } else if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ",") {
+          row.push(cell); cell = "";
+        } else if (ch === "\n" || ch === "\r") {
+          if (ch === "\r" && text[i + 1] === "\n") i++;
+          row.push(cell); cell = "";
+          rows.push(row); row = [];
+        } else {
+          cell += ch;
+        }
+      }
+      if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+      return rows;
+    }
+
+    // ============================================
+    // แปลงแถวเป็น object ตามหัวตาราง
+    // ============================================
+    function toStudents(rows) {
+      const header = rows[0].map(h => h.trim().toLowerCase());
+      const idx = name => header.indexOf(name);
+
+      return rows.slice(1)
+        .filter(r => r[idx("nickname")] && r[idx("nickname")].trim() !== "")
+        .map(r => {
+          const points = parseFloat(r[idx("points")]) || 0;
+          const prevRaw = parseFloat(r[idx("prev_points")]);
+          return {
+            nickname: r[idx("nickname")].trim(),
+            level: (r[idx("level")] || "").trim(),
+            avatar: (r[idx("avatar")] || "").trim(),
+            points: points,
+            prevPoints: isNaN(prevRaw) ? points : prevRaw,
+          };
+        });
+    }
+
+    // ============================================
+    // คำนวณอันดับ (คะแนนเท่ากัน = อันดับเท่ากัน)
+    // ============================================
+    function assignRanks(list, key) {
+      const sorted = [...list].sort((a, b) => b[key] - a[key]);
+      const ranks = new Map();
+      sorted.forEach((s, i) => {
+        const firstSame = sorted.findIndex(x => x[key] === s[key]);
+        ranks.set(s, firstSame + 1);
+      });
+      return ranks;
+    }
+
+    // ============================================
+    // วาดตาราง
+    // ============================================
+    function esc(t) {
+      return String(t).replace(/[&<>"']/g, c => (
+        { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+      ));
+    }
+
+    // ถ้าเป็นลิงก์/ชื่อไฟล์รูป ให้แสดงเป็นรูป ไม่งั้นแสดงเป็นอีโมจิ
+    function avatarHTML(value) {
+      if (!value) return '<span class="avatar emoji">🙂</span>';
+      const isImage = /^(https?:\/\/|avatars\/)|\.(png|jpe?g|gif|webp|svg)$/i.test(value);
+      if (isImage) return `<img class="avatar" src="${esc(value)}" alt="" loading="lazy">`;
+      return `<span class="avatar emoji">${esc(value)}</span>`;
+    }
+
+    function render(students) {
+      const tbody = document.getElementById("league-body");
+      const message = document.getElementById("message");
+      tbody.innerHTML = "";
+      message.innerHTML = "";
+      document.getElementById("podium").innerHTML = "";
+      document.getElementById("highlights").innerHTML = "";
+
+      if (students.length === 0) {
+        message.innerHTML = '<div class="message">ยังไม่มีข้อมูล เพิ่มชื่อนักเรียนในชีตได้เลย</div>';
+        return;
+      }
+
+      const nowRanks  = assignRanks(students, "points");
+      const prevRanks = assignRanks(students, "prevPoints");
+
+      const sorted = [...students].sort((a, b) =>
+        b.points - a.points || a.nickname.localeCompare(b.nickname, "th")
+      );
+
+      // โพเดียม: 3 อันดับแรก (ซ่อนไว้ก่อนถ้ายังไม่มีใครได้คะแนน)
+      const top = sorted.slice(0, 3).filter(s => s.points > 0);
+      const order = top.length >= 3 ? [top[1], top[0], top[2]]
+                  : top.length === 2 ? [top[1], top[0]]
+                  : top;
+      const medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+      document.getElementById("podium").innerHTML = order.map(s => {
+        const r = nowRanks.get(s);
+        return `
+          <div class="pod p${r}">
+            ${avatarHTML(s.avatar)}
+            <div class="pod-name">${esc(s.nickname)}</div>
+            <div class="pod-pts">${s.points}</div>
+            <div class="block">${medals[r]}</div>
+          </div>`;
+      }).join("");
+
+      // ดาวรุ่ง: คะแนนเพิ่มมากสุด และไต่อันดับขึ้นมากสุด (เทียบกับ prev_points)
+      const nameList = list =>
+        list.slice(0, 3).map(x => esc(x.nickname)).join(", ") +
+        (list.length > 3 ? ` และอีก ${list.length - 3} คน` : "");
+      const hlCard = (icon, title, list, value) => `
+        <div class="hl">
+          <div class="hl-title">${icon} ${title}</div>
+          <div class="hl-name">${nameList(list)}</div>
+          <div class="hl-val">${value}</div>
+        </div>`;
+
+      const maxGain = Math.max(...students.map(x => x.points - x.prevPoints));
+      const maxUp   = Math.max(...students.map(x => prevRanks.get(x) - nowRanks.get(x)));
+      const cards = [];
+      if (maxGain > 0) {
+        cards.push(hlCard("🚀", "คะแนนพุ่งสุด",
+          students.filter(x => x.points - x.prevPoints === maxGain), `+${maxGain} คะแนน`));
+      }
+      if (maxUp > 0) {
+        cards.push(hlCard("📈", "ไต่อันดับสูงสุด",
+          students.filter(x => prevRanks.get(x) - nowRanks.get(x) === maxUp), `▲ ${maxUp} อันดับ`));
+      }
+      document.getElementById("highlights").innerHTML = cards.join("");
+
+      sorted.forEach(s => {
+        const rank = nowRanks.get(s);
+        const change = prevRanks.get(s) - rank; // บวก = ไต่ขึ้น
+        const gained = s.points - s.prevPoints;
+
+        let moveHTML;
+        if (change > 0)      moveHTML = `<span class="up">▲ ${change}</span>`;
+        else if (change < 0) moveHTML = `<span class="down">▼ ${Math.abs(change)}</span>`;
+        else                 moveHTML = `<span class="same">–</span>`;
+
+        const gainHTML = gained > 0 ? `<span class="gain">+${gained}</span>` : "";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="rank">${rank}</td>
+          <td class="move">${moveHTML}</td>
+          <td class="name"><div class="who">${avatarHTML(s.avatar)}<span>${esc(s.nickname)}</span></div></td>
+          <td class="level">${esc(s.level)}</td>
+          <td class="num"><span class="points">${s.points}</span>${gainHTML}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ============================================
+    // โหลดข้อมูลจากชีต
+    // ============================================
+    async function loadScores() {
+      const status = document.getElementById("status");
+      try {
+        // ใส่ตัวเลขเวลาต่อท้าย กัน browser จำข้อมูลเก่า
+        let res;
+        try {
+          res = await fetch(SHEET_URL + "&t=" + Date.now());
+        } catch (e) {
+          res = await fetch(SHEET_URL); // ลองอีกครั้งแบบไม่ใส่ตัวเลขกันแคช
+        }
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const text = await res.text();
+
+        render(toStudents(parseCSV(text)));
+        status.textContent = "อัปเดตล่าสุด: " + new Date().toLocaleTimeString("th-TH");
+      } catch (err) {
+        status.textContent = "";
+        document.getElementById("message").innerHTML =
+          '<div class="message error">โหลดคะแนนไม่ได้ ลองรีเฟรชหน้านี้อีกครั้ง' +
+          '<br><small>รายละเอียด: ' + esc(err && err.message ? err.message : err) + '</small></div>';
+        console.error(err);
+      }
+    }
+
+    function renderRules() {
+      const box = document.getElementById("rules");
+      if (!RULES.length) return;
+      document.getElementById("rules-list").innerHTML = RULES.map(r =>
+        `<li><span>${esc(r.text)}</span><span class="pts">${esc(r.points)}</span></li>`
+      ).join("");
+      box.hidden = false;
+    }
+
+    renderRules();
+    loadScores();
+    setInterval(loadScores, 60000); // รีเฟรชเองทุก 1 นาที
+  </script>
+</body>
+</html>
