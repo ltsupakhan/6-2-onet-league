@@ -60,6 +60,22 @@
     .rules .pts { color: #00d4aa; font-weight: 700; white-space: nowrap; }
     .rules .pts.neg { color: #f56565; }
 
+    /* ---- แท็บลีก + โซนขึ้น/ตกชั้น ---- */
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 20px; }
+    .tabs:empty { display: none; }
+    .tab {
+      background: #1e2130; color: #a0aec0; border: 1px solid #2d3748;
+      border-radius: 999px; padding: 8px 16px; font: inherit; font-size: 14px; cursor: pointer;
+    }
+    .tab.active { background: #00d4aa; color: #0f1117; border-color: #00d4aa; font-weight: 700; }
+    tr.zone-up   td:first-child { box-shadow: inset 4px 0 0 #48bb78; }
+    tr.zone-down td:first-child { box-shadow: inset 4px 0 0 #fc8181; }
+    .zone-tag { font-size: 12px; margin-left: 6px; white-space: nowrap; }
+    .zone-up .zone-tag { color: #48bb78; }
+    .zone-down .zone-tag { color: #fc8181; }
+    .zone-note { color: #a0aec0; font-size: 13px; margin-top: 12px; }
+    .zone-note:empty { display: none; }
+
     /* ---- ดาวรุ่ง ---- */
     .highlights { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 24px; }
     .highlights:empty { display: none; }
@@ -133,6 +149,7 @@
     <h1>🏆 6/2 Onet League</h1>
     <p id="status">กำลังโหลดคะแนน...</p>
 
+    <div id="tabs" class="tabs"></div>
     <div id="podium" class="podium"></div>
     <div id="highlights" class="highlights"></div>
 
@@ -153,6 +170,7 @@
       </thead>
       <tbody id="league-body"></tbody>
     </table>
+    <div id="zone-note" class="zone-note"></div>
     <div id="message"></div>
   </div>
 
@@ -174,6 +192,17 @@
       { text: "คุยเล่น",        points: "-3" },
       { text: "ไม่ส่งงาน",      points: "-2" },
     ];
+
+    // ============================================
+    // ลีก: เรียงจากสูงไปต่ำ (ค่าในคอลัมน์ league ของชีตต้องตรงกับ key)
+    // ถ้าในชีตไม่มีคอลัมน์ league เว็บจะแสดงตารางเดียวเหมือนเดิม
+    // ============================================
+    const LEAGUES = [
+      { key: "เก่ง", icon: "🥇", label: "ลีกเก่ง" },
+      { key: "กลาง", icon: "🥈", label: "ลีกกลาง" },
+      { key: "อ่อน", icon: "🥉", label: "ลีกอ่อน" },
+    ];
+    const MOVE_N = 2; // เลื่อนชั้น/ตกชั้นกี่คนต่อรอบ
 
     // ============================================
     // แปลงข้อความ CSV เป็น array ของแถว
@@ -221,6 +250,7 @@
           return {
             nickname: r[idx("nickname")].trim(),
             level: (r[idx("level")] || "").trim(),
+            league: (r[idx("league")] || "").trim(),
             avatar: (r[idx("avatar")] || "").trim(),
             points: points,
             prevPoints: isNaN(prevRaw) ? points : prevRaw,
@@ -258,13 +288,14 @@
       return `<span class="avatar emoji">${esc(value)}</span>`;
     }
 
-    function render(students) {
+    function render(students, zones) {
       const tbody = document.getElementById("league-body");
       const message = document.getElementById("message");
       tbody.innerHTML = "";
       message.innerHTML = "";
       document.getElementById("podium").innerHTML = "";
       document.getElementById("highlights").innerHTML = "";
+      document.getElementById("zone-note").innerHTML = "";
 
       if (students.length === 0) {
         message.innerHTML = '<div class="message">ยังไม่มีข้อมูล เพิ่มชื่อนักเรียนในชีตได้เลย</div>';
@@ -319,7 +350,13 @@
       }
       document.getElementById("highlights").innerHTML = cards.join("");
 
-      sorted.forEach(s => {
+      const anyPoints = sorted.some(x => x.points !== 0);
+      sorted.forEach((s, i) => {
+        let zone = "";
+        if (zones && anyPoints) {
+          if (zones.up && i < MOVE_N) zone = "up";
+          else if (zones.down && i >= sorted.length - MOVE_N) zone = "down";
+        }
         const rank = nowRanks.get(s);
         const change = prevRanks.get(s) - rank; // บวก = ไต่ขึ้น
         const gained = s.points - s.prevPoints;
@@ -332,16 +369,57 @@
         const gainHTML = gained > 0 ? `<span class="gain">+${gained}</span>` : "";
 
         const tr = document.createElement("tr");
+        if (zone) tr.className = "zone-" + zone;
+        const zoneTag = zone === "up" ? '<span class="zone-tag">⬆️ เลื่อนชั้น</span>'
+                      : zone === "down" ? '<span class="zone-tag">⬇️ ตกชั้น</span>' : "";
         tr.innerHTML = `
           <td class="rank">${rank}</td>
           <td class="move">${moveHTML}</td>
-          <td class="name"><div class="who">${avatarHTML(s.avatar)}<span>${esc(s.nickname)}</span></div></td>
+          <td class="name"><div class="who">${avatarHTML(s.avatar)}<span>${esc(s.nickname)}</span>${zoneTag}</div></td>
           <td class="level">${esc(s.level)}</td>
           <td class="num"><span class="points">${s.points}</span>${gainHTML}</td>
         `;
         tbody.appendChild(tr);
       });
+
+      if (zones && anyPoints && (zones.up || zones.down)) {
+        const parts = [];
+        if (zones.up)   parts.push(`🟩 ${MOVE_N} อันดับแรก = เลื่อนชั้น`);
+        if (zones.down) parts.push(`🟥 ${MOVE_N} อันดับสุดท้าย = ตกชั้น`);
+        document.getElementById("zone-note").textContent = parts.join("   ·   ") + " (ตามอันดับตอนนี้ ตัดสินตอนจบรอบ)";
+      }
     }
+
+    // ============================================
+    // แท็บลีก
+    // ============================================
+    let ALL = [];
+    let currentTab = null;
+
+    function refresh() {
+      const tabsEl = document.getElementById("tabs");
+      const hasLeague = ALL.some(s => LEAGUES.some(l => l.key === s.league));
+      if (!hasLeague) { tabsEl.innerHTML = ""; render(ALL); return; }
+
+      const valid = LEAGUES.map(l => l.key).concat("all");
+      if (!valid.includes(currentTab)) currentTab = LEAGUES[0].key;
+
+      tabsEl.innerHTML = LEAGUES.map(l => {
+        const n = ALL.filter(s => s.league === l.key).length;
+        return `<button class="tab${currentTab === l.key ? " active" : ""}" data-tab="${esc(l.key)}">${l.icon} ${esc(l.label)} (${n})</button>`;
+      }).join("") + `<button class="tab${currentTab === "all" ? " active" : ""}" data-tab="all">ทั้งหมด (${ALL.length})</button>`;
+
+      if (currentTab === "all") { render(ALL); return; }
+      const i = LEAGUES.findIndex(l => l.key === currentTab);
+      render(ALL.filter(s => s.league === currentTab), { up: i > 0, down: i < LEAGUES.length - 1 });
+    }
+
+    document.getElementById("tabs").addEventListener("click", e => {
+      const b = e.target.closest(".tab");
+      if (!b) return;
+      currentTab = b.dataset.tab;
+      refresh();
+    });
 
     // ============================================
     // โหลดข้อมูลจากชีต
@@ -359,7 +437,8 @@
         if (!res.ok) throw new Error("HTTP " + res.status);
         const text = await res.text();
 
-        render(toStudents(parseCSV(text)));
+        ALL = toStudents(parseCSV(text));
+        refresh();
         status.textContent = "อัปเดตล่าสุด: " + new Date().toLocaleTimeString("th-TH");
       } catch (err) {
         status.textContent = "";
