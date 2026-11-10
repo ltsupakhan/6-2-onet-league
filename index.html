@@ -58,6 +58,7 @@
       padding: 8px 0; border-top: 1px solid #2d3748;
     }
     .rules .pts { color: #00d4aa; font-weight: 700; white-space: nowrap; }
+    .rules .pts.neg { color: #f56565; }
 
     /* ---- ดาวรุ่ง ---- */
     .highlights { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 24px; }
@@ -167,11 +168,11 @@
     // ถ้าเว้นว่าง [] กล่องกติกาจะไม่แสดง
     // ============================================
     const RULES = [
-      { text: "ตอบคำถามในคลาสได้ถูกต้อง",      points: "+1" },
-      { text: "ส่งการบ้านครบตรงเวลา",           points: "+2" },
-      { text: "ทำแบบฝึกหัด ONET เสร็จ",         points: "+3" },
-      { text: "ช่วยอธิบายให้เพื่อนเข้าใจ",      points: "+2" },
-      { text: "มาเรียนครบทุกคาบในสัปดาห์",      points: "+3" },
+      { text: "ตอบคำถามได้",   points: "+2" },
+      { text: "มาเรียน",        points: "+1" },
+      { text: "อธิบายได้",      points: "+3" },
+      { text: "คุยเล่น",        points: "-3" },
+      { text: "ไม่ส่งงาน",      points: "-2" },
     ];
 
     // ============================================
@@ -373,7 +374,7 @@
       const box = document.getElementById("rules");
       if (!RULES.length) return;
       document.getElementById("rules-list").innerHTML = RULES.map(r =>
-        `<li><span>${esc(r.text)}</span><span class="pts">${esc(r.points)}</span></li>`
+        `<li><span>${esc(r.text)}</span><span class="pts${String(r.points).trim().startsWith("-") ? " neg" : ""}">${esc(r.points)}</span></li>`
       ).join("");
       box.hidden = false;
     }
