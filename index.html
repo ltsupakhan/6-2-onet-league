@@ -198,10 +198,16 @@
     // ถ้าในชีตไม่มีคอลัมน์ league เว็บจะแสดงตารางเดียวเหมือนเดิม
     // ============================================
     const LEAGUES = [
-      { key: "เก่ง", icon: "🥇", label: "ลีกเก่ง" },
-      { key: "กลาง", icon: "🥈", label: "ลีกกลาง" },
-      { key: "อ่อน", icon: "🥉", label: "ลีกอ่อน" },
+      { key: "เก่ง", names: ["good"], icon: "🥇", label: "ลีกเก่ง" },
+      { key: "กลาง", names: ["average"], icon: "🥈", label: "ลีกกลาง" },
+      { key: "อ่อน", names: ["poor"], icon: "🥉", label: "ลีกอ่อน" },
     ];
+    // รับทั้งภาษาไทยและอังกฤษในชีต (good / average / poor)
+    function normLeague(v) {
+      const t = String(v || "").trim().toLowerCase();
+      const l = LEAGUES.find(x => x.key === t || x.names.includes(t));
+      return l ? l.key : "";
+    }
     const MOVE_N = 2; // เลื่อนชั้น/ตกชั้นกี่คนต่อรอบ
 
     // ============================================
@@ -250,7 +256,7 @@
           return {
             nickname: r[idx("nickname")].trim(),
             level: (r[idx("level")] || "").trim(),
-            league: (r[idx("league")] || "").trim(),
+            league: normLeague(r[idx("league")]),
             avatar: (r[idx("avatar")] || "").trim(),
             points: points,
             prevPoints: isNaN(prevRaw) ? points : prevRaw,
