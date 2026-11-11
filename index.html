@@ -76,6 +76,27 @@
     .zone-note { color: #a0aec0; font-size: 13px; margin-top: 12px; }
     .zone-note:empty { display: none; }
 
+    /* ---- แอนิเมชัน (เล่นตอนเปิดหน้าและตอนสลับแท็บ) ---- */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes grow   { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    @keyframes pop    { 0% { transform: scale(.4); opacity: 0; } 70% { transform: scale(1.12); } 100% { transform: scale(1); opacity: 1; } }
+    .fx.podium .pod { animation: fadeUp .5s both; }
+    .fx.podium .pod.p1 { animation-delay: .35s; }
+    .fx.podium .pod.p2 { animation-delay: .15s; }
+    .fx.podium .pod.p3 { animation-delay: 0s; }
+    .fx.podium .pod .block { transform-origin: bottom; animation: grow .7s cubic-bezier(.2,.8,.2,1) both; }
+    .fx.podium .pod.p1 .block { animation-delay: .2s; }
+    .fx.podium .pod .avatar { animation: pop .6s both; animation-delay: .5s; }
+    .fx.highlights .hl { animation: fadeUp .5s both; }
+    .fx.highlights .hl:nth-child(2) { animation-delay: .12s; }
+    tbody.fx tr { animation: fadeUp .45s both; animation-delay: calc(var(--i, 0) * 25ms); }
+    tr:hover td { transition: background-color .15s; }
+    .tab { transition: background-color .2s, color .2s, transform .1s; }
+    .tab:active { transform: scale(.95); }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+
     /* ---- ดาวรุ่ง ---- */
     .highlights { display: flex; gap: 12px; flex-wrap: wrap; margin: 0 0 24px; }
     .highlights:empty { display: none; }
@@ -294,6 +315,20 @@
       return `<span class="avatar emoji">${esc(value)}</span>`;
     }
 
+    let animateNext = true; // เล่นแอนิเมชันเฉพาะตอนเปิดหน้า/สลับแท็บ (ไม่กระพริบตอนรีเฟรชอัตโนมัติ)
+
+    function countUp(root) {
+      root.querySelectorAll("[data-v]").forEach(el => {
+        const to = parseFloat(el.dataset.v), t0 = performance.now(), dur = 800;
+        const step = now => {
+          const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+          el.textContent = Number.isInteger(to) ? Math.round(to * e) : (to * e).toFixed(1);
+          if (k < 1) requestAnimationFrame(step); else el.textContent = to;
+        };
+        requestAnimationFrame(step);
+      });
+    }
+
     function render(students, zones) {
       const tbody = document.getElementById("league-body");
       const message = document.getElementById("message");
@@ -302,6 +337,9 @@
       document.getElementById("podium").innerHTML = "";
       document.getElementById("highlights").innerHTML = "";
       document.getElementById("zone-note").innerHTML = "";
+      const fx = animateNext; animateNext = false;
+      ["podium", "highlights"].forEach(id => document.getElementById(id).classList.toggle("fx", fx));
+      tbody.classList.toggle("fx", fx);
 
       if (students.length === 0) {
         message.innerHTML = '<div class="message">ยังไม่มีข้อมูล เพิ่มชื่อนักเรียนในชีตได้เลย</div>';
@@ -327,7 +365,7 @@
           <div class="pod p${r}">
             ${avatarHTML(s.avatar)}
             <div class="pod-name">${esc(s.nickname)}</div>
-            <div class="pod-pts">${s.points}</div>
+            <div class="pod-pts"${fx ? ` data-v="${s.points}"` : ""}>${s.points}</div>
             <div class="block">${medals[r]}</div>
           </div>`;
       }).join("");
@@ -375,6 +413,7 @@
         const gainHTML = gained > 0 ? `<span class="gain">+${gained}</span>` : "";
 
         const tr = document.createElement("tr");
+        tr.style.setProperty("--i", Math.min(i, 20));
         if (zone) tr.className = "zone-" + zone;
         const zoneTag = zone === "up" ? '<span class="zone-tag">⬆️ เลื่อนชั้น</span>'
                       : zone === "down" ? '<span class="zone-tag">⬇️ ตกชั้น</span>' : "";
@@ -383,10 +422,12 @@
           <td class="move">${moveHTML}</td>
           <td class="name"><div class="who">${avatarHTML(s.avatar)}<span>${esc(s.nickname)}</span>${zoneTag}</div></td>
           <td class="level">${esc(s.level)}</td>
-          <td class="num"><span class="points">${s.points}</span>${gainHTML}</td>
+          <td class="num"><span class="points"${fx ? ` data-v="${s.points}"` : ""}>${s.points}</span>${gainHTML}</td>
         `;
         tbody.appendChild(tr);
       });
+
+      if (fx) { countUp(document.getElementById("podium")); countUp(tbody); }
 
       if (zones && anyPoints && (zones.up || zones.down)) {
         const parts = [];
@@ -424,6 +465,7 @@
       const b = e.target.closest(".tab");
       if (!b) return;
       currentTab = b.dataset.tab;
+      animateNext = true;
       refresh();
     });
 
